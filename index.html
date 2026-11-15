@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>資安週報</title>
+  <meta name="description" content="每週一則深講加幾則短訊，用由淺入深的方式讀懂資安事件。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="inner">
+    <a class="site-title" href="index.html">資安週報</a>
+    <nav class="site-nav"><a href="index.html">所有期數</a><a href="about.html">關於</a></nav>
+  </div></header>
+
+  <main>
+    <section class="hero">
+      <h1>資安週報</h1>
+      <p>每週一則深講、幾則短訊。給懂一點程式、但還不是資安專家的你。</p>
+    </section>
+
+    <!-- 新期數加在最上方（CLAUDE.md 第 6 節） -->
+    <ol class="issue-list">
+      <li>
+        <a class="issue-card" href="issues/002-log4shell.html">
+          <div class="meta">第 2 期 · <time datetime="2026-11-15">2026-11-15</time> · CVE-2021-44228</div>
+          <h2>Log4Shell：一行日誌如何讓伺服器聽命於人</h2>
+          <p>Java 日誌函式庫會「解讀」它記錄的字串，於是攻擊者只要讓你記下一句話。</p>
+        </a>
+      </li>
+      <li>
+        <a class="issue-card" href="issues/001-xz-backdoor.html">
+          <div class="meta">第 1 期 · <time datetime="2026-11-08">2026-11-08</time> · CVE-2024-3094</div>
+          <h2>XZ Utils 後門：一場花了兩年的開源供應鏈攻擊</h2>
+          <p>攻擊者先成為可信任的維護者，再把後門藏進測試檔，差點進入各大 Linux 發行版。</p>
+        </a>
+      </li>
+    </ol>
+  </main>
+
+  <footer class="site-footer">資安週報 · 內容僅供教育用途 · 事實以文中來源為準</footer>
+</body>
+</html>

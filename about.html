@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>關於｜資安週報</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="inner">
+    <a class="site-title" href="index.html">資安週報</a>
+    <nav class="site-nav"><a href="index.html">所有期數</a><a href="about.html">關於</a></nav>
+  </div></header>
+
+  <main>
+    <h1>關於本站</h1>
+    <p>資安週報是一個用 AI 協作、依固定規則持續產出的靜態網站。每一期都遵守同一套結構，讓讀者知道去哪裡找重點，也讓 AI 能照規則穩定地新增下一期。</p>
+
+    <h2>每期的結構</h2>
+    <ol>
+      <li><strong>本期三句話</strong>：沒時間的話，看這裡就好。</li>
+      <li><strong>深講</strong>：先備概念 → 事件經過 → 技術機制 → 防禦與啟示，由淺入深。</li>
+      <li><strong>短訊</strong>：3–5 則相關消息，每則附可查證的來源。</li>
+      <li><strong>名詞小卡</strong>：文中術語的一句話解釋。</li>
+    </ol>
+
+    <h2>寫作原則</h2>
+    <ul>
+      <li>事實可查證：日期、版本、CVE 編號都附來源，不確定就不寫。</li>
+      <li>講機制、不教攻擊：程式碼只作示意，不放可直接利用的 exploit。</li>
+      <li>冷靜不渲染：說清楚影響範圍，也說清楚誰其實沒受影響。</li>
+    </ul>
+
+    <h2>這個網站怎麼做的</h2>
+    <p>專案規則寫在 repository 根目錄的 <code>CLAUDE.md</code>（<code>AGENTS.md</code> 指向同一份）。新增一期時，AI 依照規則複製模板、填入內容、更新首頁與上下期連結，最後跑 <code>scripts/check_site.py</code> 驗證結構。</p>
+  </main>
+
+  <footer class="site-footer">資安週報 · 內容僅供教育用途 · 事實以文中來源為準</footer>
+</body>
+</html>

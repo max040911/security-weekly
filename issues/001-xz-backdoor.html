@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第 1 期：XZ Utils 後門｜資安週報</title>
+  <meta name="description" content="攻擊者花兩年成為開源專案維護者，把後門藏進壓縮函式庫，差點進入各大 Linux 發行版。">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="inner">
+    <a class="site-title" href="../index.html">資安週報</a>
+    <nav class="site-nav"><a href="../index.html">所有期數</a><a href="../about.html">關於</a></nav>
+  </div></header>
+
+  <main>
+    <header class="issue-header">
+      <div class="meta">第 1 期 · <time datetime="2026-11-08">2026-11-08</time></div>
+      <h1>XZ Utils 後門：一場花了兩年的開源供應鏈攻擊</h1>
+      <ul class="tags">
+        <li class="tag cve">CVE-2024-3094</li>
+        <li class="tag">供應鏈攻擊</li>
+        <li class="tag">Linux</li>
+      </ul>
+    </header>
+
+    <section id="tldr">
+      <h2>本期三句話</h2>
+      <ol>
+        <li>xz 5.6.0 與 5.6.1 被植入後門，可能讓攻擊者遠端控制 SSH。</li>
+        <li>攻擊者花了約兩年經營信任，成為專案的共同維護者後才下手。</li>
+        <li>主要影響測試版發行版；確認 xz 不是這兩個版本即可。</li>
+      </ol>
+    </section>
+
+    <section id="deep-dive">
+      <h2>深講：信任，才是被攻破的那一層</h2>
+
+      <h3>先備概念</h3>
+      <p class="analogy">想像一棟大樓的門禁系統，用的是某家小工廠做的零件。大樓很注重保全，但沒人想到，那家小工廠的老闆換人了，新老闆在零件裡藏了一把萬用鑰匙。</p>
+      <p><strong>xz</strong> 是 Linux 上很常見的壓縮工具，它的函式庫 <code>liblzma</code> 被許多程式間接使用。這種「你沒直接裝，但它就在你系統裡」的元件，就是<strong>軟體供應鏈（software supply chain）</strong>的一環。攻擊供應鏈的好處是：只要污染一個上游，所有下游都會自動收到。</p>
+      <p>另一個關鍵是：很多開源專案只靠一兩位志工維護，他們很累、很需要幫手。這次攻擊，利用的就是這一點。</p>
+
+      <h3>事件經過</h3>
+      <ol class="timeline">
+        <li><time datetime="2021">2021 年起</time>名為「Jia Tan」的帳號開始對 xz 專案提交修補，表現積極可靠。</li>
+        <li><time datetime="2022">2022 年</time>數個疑似分身帳號在郵件論壇抱怨進度太慢、施壓原維護者 Lasse Collin 增加維護者。Jia Tan 逐步取得發布權限。</li>
+        <li><time datetime="2024-02">2024-02</time>xz 5.6.0 發布，隨後 5.6.1 發布，兩版都含後門。</li>
+        <li><time datetime="2024-03-29">2024-03-29</time>工程師 Andres Freund 發現 SSH 登入異常變慢、CPU 用量偏高，追查後在 oss-security 郵件論壇公開揭露。</li>
+        <li><time datetime="2024-03-29">2024-03-29</time>美國 CISA 發布警示，建議降版至未受影響版本；各發行版迅速撤回。</li>
+      </ol>
+
+      <h3>技術機制</h3>
+      <p>後門設計得非常隱密，有三個值得注意的地方：</p>
+      <ul>
+        <li><strong>不在 Git 原始碼裡</strong>：惡意的建置腳本只出現在發布用的 tarball 中。只看 GitHub 上原始碼的人看不到。</li>
+        <li><strong>藏在測試檔裡</strong>：真正的惡意程式碼被包裝成「用來測試壞掉壓縮檔」的二進位測試資料，看起來完全合理。</li>
+        <li><strong>借道 systemd 碰到 SSH</strong>：OpenSSH 本身不用 liblzma，但部分發行版讓 <code>sshd</code> 連結 <code>libsystemd</code>，而它又連結 <code>liblzma</code>。後門因此能在 sshd 載入時，攔截它驗證 RSA 金鑰的函式。</li>
+      </ul>
+      <p>概念上的依賴鏈如下（示意）：</p>
+      <pre><code>sshd  ──連結──▶  libsystemd  ──連結──▶  liblzma (被植入後門)
+                                         │
+                       建置時注入，執行時攔截 RSA 驗證函式
+                                         ▼
+                 持有特定私鑰的攻擊者 → 可在目標上執行指令</code></pre>
+      <p>只有持有特定私鑰的攻擊者能觸發，其他人連掃描都看不出來。這也是它被評為 CVSS 10.0 的原因。</p>
+
+      <h3>防禦與啟示</h3>
+      <div class="defense">
+        <section>
+          <h4>立即可做</h4>
+          <ul>
+            <li>執行 <code>xz --version</code>，確認不是 5.6.0 或 5.6.1。</li>
+            <li>用穩定版發行版的主機基本不受影響；用測試版（如 Debian unstable、Fedora Rawhide）的要更新。</li>
+          </ul>
+        </section>
+        <section>
+          <h4>長期該想</h4>
+          <ul>
+            <li>「發布檔」與「原始碼」不一致是警訊，可重現建置（reproducible builds）能抓到這種差異。</li>
+            <li>維護者過勞是資安問題：支持你依賴的開源專案。</li>
+            <li>這次是靠一個人的好奇心才發現，效能異常也值得追查。</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+
+    <section id="briefs">
+      <h2>短訊</h2>
+      <article class="brief">
+        <time datetime="2024-03-29">2024-03-29</time>
+        <h3>原始揭露：Andres Freund 的 oss-security 郵件</h3>
+        <p>發現者在郵件中說明了他如何從 SSH 變慢一路追到 liblzma，是理解這起事件最好的第一手資料。</p>
+        <p class="source">來源：<a href="https://www.openwall.com/lists/oss-security/2024/03/29/4" target="_blank" rel="noopener">oss-security mailing list</a></p>
+      </article>
+      <article class="brief">
+        <time datetime="2024-03-29">2024-03-29</time>
+        <h3>CISA 發布警示，建議降版</h3>
+        <p>美國網路安全暨基礎設施安全局建議開發者與使用者將 XZ Utils 降至未受影響版本，並檢查是否有可疑活動。</p>
+        <p class="source">來源：<a href="https://www.cisa.gov/news-events/alerts/2024/03/29/reported-supply-chain-compromise-affecting-xz-utils-data-compression-library-cve-2024-3094" target="_blank" rel="noopener">CISA Alert</a></p>
+      </article>
+      <article class="brief">
+        <time datetime="2024-03-29">2024-03-29</time>
+        <h3>NVD 收錄 CVE-2024-3094</h3>
+        <p>美國國家漏洞資料庫記錄了受影響版本與嚴重度評分，可作為查核版本資訊的依據。</p>
+        <p class="source">來源：<a href="https://nvd.nist.gov/vuln/detail/CVE-2024-3094" target="_blank" rel="noopener">NVD</a></p>
+      </article>
+      <article class="brief">
+        <time datetime="2024-03">2024-03 底</time>
+        <h3>原維護者的說明頁</h3>
+        <p>Lasse Collin 在 XZ 官方網站整理事件說明與後續處理，記錄了專案如何從被奪取的狀態中恢復。</p>
+        <p class="source">來源：<a href="https://tukaani.org/xz-backdoor/" target="_blank" rel="noopener">tukaani.org</a></p>
+      </article>
+    </section>
+
+    <section id="glossary">
+      <h2>名詞小卡</h2>
+      <dl>
+        <div><dt>供應鏈攻擊（supply chain attack）</dt><dd>不直接攻擊目標，而是污染目標所依賴的上游元件。</dd></div>
+        <div><dt>後門（backdoor）</dt><dd>刻意留下、可繞過正常驗證的隱密入口。</dd></div>
+        <div><dt>Tarball</dt><dd>以 .tar.gz 等格式打包的發布檔，常被發行版拿來建置套件。</dd></div>
+        <div><dt>可重現建置（reproducible builds）</dt><dd>同一份原始碼不論誰來建置，產出都逐位元相同，因此能驗證發布檔未被竄改。</dd></div>
+        <div><dt>CVSS</dt><dd>通用漏洞評分系統，0–10 分，10 分代表最嚴重。</dd></div>
+      </dl>
+    </section>
+
+    <nav class="issue-nav">
+      <span class="disabled">← 上一期</span>
+      <a href="../index.html">所有期數</a>
+      <a href="002-log4shell.html">第 2 期 →</a>
+    </nav>
+  </main>
+
+  <footer class="site-footer">資安週報 · 內容僅供教育用途 · 事實以文中來源為準</footer>
+</body>
+</html>

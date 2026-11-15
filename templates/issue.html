@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- 模板：複製為 issues/NNN-slug.html，替換所有 {{...}}，刪除本註解。規則見 CLAUDE.md 第 4、6 節 -->
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第 {{N}} 期：{{標題}}｜資安週報</title>
+  <meta name="description" content="{{一句話摘要}}">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="inner">
+    <a class="site-title" href="../index.html">資安週報</a>
+    <nav class="site-nav"><a href="../index.html">所有期數</a><a href="../about.html">關於</a></nav>
+  </div></header>
+
+  <main>
+    <header class="issue-header">
+      <div class="meta">第 {{N}} 期 · <time datetime="{{YYYY-MM-DD}}">{{YYYY-MM-DD}}</time></div>
+      <h1>{{標題}}</h1>
+      <ul class="tags">
+        <li class="tag cve">{{CVE-YYYY-NNNNN}}</li>
+        <li class="tag">{{分類標籤}}</li>
+      </ul>
+    </header>
+
+    <section id="tldr">
+      <h2>本期三句話</h2>
+      <ol>
+        <li>{{第一句：發生什麼事}}</li>
+        <li>{{第二句：為什麼嚴重}}</li>
+        <li>{{第三句：你該做什麼}}</li>
+      </ol>
+    </section>
+
+    <section id="deep-dive">
+      <h2>深講：{{深講標題}}</h2>
+
+      <h3>先備概念</h3>
+      <p class="analogy">{{生活比喻}}</p>
+      <p>{{背景說明}}</p>
+
+      <h3>事件經過</h3>
+      <ol class="timeline">
+        <li><time datetime="{{YYYY-MM-DD}}">{{YYYY-MM-DD}}</time>{{事件}}</li>
+      </ol>
+
+      <h3>技術機制</h3>
+      <p>{{為什麼這樣能攻擊成功}}</p>
+      <pre><code>{{示意程式碼（不可放完整 exploit）}}</code></pre>
+
+      <h3>防禦與啟示</h3>
+      <div class="defense">
+        <section><h4>立即可做</h4><ul><li>{{}}</li></ul></section>
+        <section><h4>長期該想</h4><ul><li>{{}}</li></ul></section>
+      </div>
+    </section>
+
+    <section id="briefs">
+      <h2>短訊</h2>
+      <article class="brief">
+        <time datetime="{{YYYY-MM-DD}}">{{YYYY-MM-DD}}</time>
+        <h3>{{短訊標題}}</h3>
+        <p>{{1–2 句說明}}</p>
+        <p class="source">來源：<a href="{{URL}}" target="_blank" rel="noopener">{{來源名稱}}</a></p>
+      </article>
+    </section>
+
+    <section id="glossary">
+      <h2>名詞小卡</h2>
+      <dl>
+        <div><dt>{{術語}}（{{English}}）</dt><dd>{{一句話解釋}}</dd></div>
+      </dl>
+    </section>
+
+    <nav class="issue-nav">
+      <a href="{{上一期檔名}}">← 第 {{N-1}} 期</a>
+      <a href="../index.html">所有期數</a>
+      <span class="disabled">下一期 →</span>
+    </nav>
+  </main>
+
+  <footer class="site-footer">資安週報 · 內容僅供教育用途 · 事實以文中來源為準</footer>
+</body>
+</html>

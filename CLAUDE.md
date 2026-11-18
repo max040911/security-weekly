@@ -24,12 +24,24 @@
 ├── README.md              # 給人看的專案介紹
 ├── index.html             # 首頁：期數列表（新到舊）
 ├── about.html             # 關於本站與寫作原則
-├── assets/style.css       # 全站唯一樣式表
+├── assets/style.css       # 全站樣式表（簡報另加 assets/slides.css）
 ├── templates/issue.html   # 新期數的模板（複製它，不要從零寫）
 ├── issues/
 │   ├── 001-xz-backdoor.html
 │   └── 002-log4shell.html
-└── scripts/check_site.py  # 結構檢查，修改後必跑
+├── wiki/                  # LLM Wiki：週報的知識庫（第 8 節）
+│   ├── index.md           # 所有頁面目錄
+│   ├── log.md             # 操作紀錄（討論、ingest、lint、查詢）
+│   ├── workflow.md        # 知識庫 → 簡報的流程圖與檢查點
+│   ├── raw/               # 原始資料，ingest 後不可修改
+│   ├── sources/           # 每份原始資料一頁摘要
+│   ├── concepts/          # 概念頁
+│   └── events/            # 事件頁
+├── slides/                # 由 Wiki 產生的教學簡報與大綱（第 9 節）
+└── scripts/
+    ├── check_site.py      # 週報結構檢查
+    ├── lint_wiki.py       # Wiki 檢查
+    └── check_slides.py    # 簡報檢查
 ```
 
 ### 命名規則
@@ -85,3 +97,56 @@
 - 顏色只使用 `:root` 中定義的 CSS 變數，不寫死色碼；深色模式須同步處理。
 - 不刪除既有期數；內容有誤時在該期加 `<p class="erratum">` 更正說明。
 - 結構規則（第 4 節）若需要改，先更新本檔與 `scripts/check_site.py`，再改頁面，三者保持一致。
+
+## 8. LLM Wiki（`wiki/`）
+
+Wiki 是週報與簡報的**唯一知識來源**：週報與簡報裡的事實，都要先存在於 Wiki；Wiki 裡的事實，都要能追到 `raw/`。
+三層結構：`raw/`（原始資料，人或腳本放入，AI 不改）→ Wiki 頁面（AI 維護）→ 本節規則（schema）。
+
+### 頁面類型與格式
+
+每個 Wiki 頁面開頭都有 YAML front matter（GitHub Pages 會用它產生標題）：
+
+```yaml
+---
+title: 頁面標題
+type: source | concept | event | meta
+sources: [raw 檔名或 source 頁 slug, ...]   # meta 頁可省略
+updated: YYYY-MM-DD
+---
+```
+
+| 類型 | 位置 | 必要內容 |
+|---|---|---|
+| source | `sources/<slug>.md` | `raw:` 連結到 `../raw/<slug>.md`、原始網址、授權、**重點摘要**（5–10 點）、與其他來源的衝突 |
+| concept | `concepts/<slug>.md` | 一句話定義、生活比喻、重點、和哪些事件有關、來源 |
+| event | `events/<slug>.md` | 一句話摘要、時間線、機制、受影響範圍、相關概念、來源 |
+| meta | `index.md`、`log.md`、`workflow.md` | — |
+
+- 頁面之間用**相對路徑的標準 Markdown 連結**（`[SBOM](../concepts/sbom.md)`），不用 `[[wikilink]]`，GitHub Pages 才會轉成可點的 `.html`。
+- concept / event 頁的每個事實段落後面標來源：`（來源：[NVD](../sources/nvd-cves.md)）`。
+- `raw/` 只放授權允許轉載的全文（公有領域、CC、Apache 等）；其他來源只放「來源卡」：網址、作者、日期、少於 15 字的短引述。
+- 內文不可出現 `{{` 或 `{%`（GitHub Pages 的 Liquid 會吃掉）。
+
+### 三種操作
+
+1. **Ingest**（新增來源）：放入 `raw/` → 寫 `sources/<slug>.md` → 更新受影響的 concept / event 頁 → 更新 `index.md` → 在 `log.md` 追加一筆。
+2. **Query**（查詢）：先讀 `index.md` 找頁面，再讀頁面回答；好的答案可以寫回成新頁。
+3. **Lint**（檢查）：`python scripts/lint_wiki.py`，必須顯示 `OK`。
+
+### 來源衝突
+
+兩個來源說法不同時，**不可以挑一個默默採用**：在兩邊的 source 頁「衝突」段落都寫明，並在 concept / event 頁註明採用哪個、為什麼。
+
+## 9. 教學簡報（`slides/`）
+
+- 檔名 `slides/<slug>.html`，單一 HTML 檔，樣式寫在 `assets/slides.css`。**不用 JavaScript**：用 CSS scroll-snap 換頁，小測驗答案用 `<details>`。
+- 每張投影片是 `<section class="slide" data-wiki="concepts/sbom.md events/xz-backdoor.md">`，`data-wiki` 列出這頁依據的 Wiki 頁（相對於 `wiki/`），頁尾顯示可點的依據連結。
+- **簡報不可出現 Wiki 沒有的事實**：CVE 編號、版本號、CVSS 分數、日期，都必須能在 `data-wiki` 指到的頁面中找到原文。
+- 教學結構固定：封面 → 學習目標 → 先備概念 → 案例 → 比較 → 防禦方法 → 回到案例 → 小測驗 → 重點回顧。張數 12–18。
+- **先寫大綱再寫簡報**：`slides/<slug>.outline.md`，每張投影片一段 `## sN`，列出 `- 依據：` 與逐字引用的 Wiki 原句（`> ` 開頭）。投影片只能改寫大綱引用的內容；需要新事實時，先補進 Wiki，再更新大綱。
+- 完成後執行 `python scripts/check_slides.py`，必須 `OK`；再用 375px 寬度目視檢查。
+
+### 產生簡報的流程
+
+依 `wiki/workflow.md` 的流程圖執行：每個節點的檢查失敗，就回到圖上標示的節點重做，不跳過。
